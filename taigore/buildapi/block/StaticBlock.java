@@ -37,7 +37,7 @@ public class StaticBlock implements IAbstractBlock
 	public void drawAt(Position startPosition, Rotation facing, Random generator, World canvas)
 	{
 		if(startPosition != null)
-			canvas.setBlockAndMetadataWithNotify(startPosition.x, startPosition.y, startPosition.z, this.id, this.metadata, 0);
+			canvas.setBlock(startPosition.x, startPosition.y, startPosition.z, this.id, this.metadata, 0);
 	}
 	
 	@Override

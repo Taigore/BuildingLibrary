@@ -342,7 +342,7 @@ public class WorldGenCrypt implements IWorldGenerator
 					}
 					
 					toAdd = new ItemStack(Item.helmetGold);
-					toAdd.addEnchantment(Enchantment.field_92091_k, 7);
+					toAdd.addEnchantment(Enchantment.thorns, 7);
 					toAdd.addEnchantment(Enchantment.unbreaking, 5);
 					toAdd.setItemName("Withered King's crown");
 					nbtToAdd = new NBTTagCompound();

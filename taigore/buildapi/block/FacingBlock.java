@@ -11,8 +11,8 @@ import taigore.buildapi.Rotation;
 
 public class FacingBlock implements IAbstractBlock
 {
-	public static final FacingBlock stoneSmoothStairsPlusX = makeFromIdAndMetas(Block.stairsStoneBrickSmooth.blockID, 1, 3, 0, 2);
-	public static final FacingBlock stoneSmoothStairsPlusXReversed = makeFromIdAndMetas(Block.stairsStoneBrickSmooth.blockID, 5, 7, 4, 6);
+	public static final FacingBlock stoneSmoothStairsPlusX = makeFromIdAndMetas(Block.stairsStoneBrick.blockID, 1, 3, 0, 2);
+	public static final FacingBlock stoneSmoothStairsPlusXReversed = makeFromIdAndMetas(Block.stairsStoneBrick.blockID, 5, 7, 4, 6);
 	public static final FacingBlock simpleChestPlusX = makeFromIdAndMetas(Block.chest.blockID, 5, 3, 4, 2);
 	
 	//Sub-blocks random choice
