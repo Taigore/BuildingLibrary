@@ -12,13 +12,5 @@ public interface IAbstractBlock
 	 * This function performs the actual block placement, or none if the block
 	 * decides to do so.
 	 */
-	public void drawAt(Position startPosition, Rotation facing, Random generator, World canvas);
-	/**
-	 * Rotates this block and all child blocks.
-	 */
-	public IAbstractBlock rotate(Rotation rotation);
-	/**
-	 * Creates a copy of this block.
-	 */
-	public abstract IAbstractBlock copy();
+	void drawAt(Position startPosition, Rotation facing, Random generator, World canvas);
 }

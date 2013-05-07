@@ -2,34 +2,17 @@ package taigore.crypt;
 
 import java.util.Random;
 
-import net.minecraft.block.Block;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.monster.EntitySkeleton;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagByte;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagFloat;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagShort;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import taigore.buildapi.MagicalEffect;
 import taigore.buildapi.Position;
-import taigore.buildapi.Rotation;
-import taigore.buildapi.block.FacingBlock;
-import taigore.buildapi.block.MonsterBlock;
-import taigore.buildapi.block.RandomBlock;
-import taigore.buildapi.block.StaticBlock;
-import taigore.buildapi.block.TileEntityBlock;
-import taigore.buildapi.building.RepeatingBuilding;
+import taigore.buildapi.activestructure.ActiveStructure;
 import taigore.buildapi.building.StaticBuilding;
 import cpw.mods.fml.common.IWorldGenerator;
 
 public class WorldGenCrypt implements IWorldGenerator
 {
 	private static StaticBuilding cryptComplex;
-	
+	/*
 	static
 	{
 		Position pointA = new Position();
@@ -93,7 +76,7 @@ public class WorldGenCrypt implements IWorldGenerator
 			royalGuard.setDataTag(new NBTTagInt("Health", 20));*/
 			
 			//Special effects
-			{
+			/*{
 				royalGuard.addPotionEffect(MagicalEffect.FIRE_RESISTANCE);
 				royalGuard.addPotionEffect(MagicalEffect.REGENERATION);
 				royalGuard.addPotionEffect(MagicalEffect.RESISTANCE);
@@ -110,7 +93,7 @@ public class WorldGenCrypt implements IWorldGenerator
 				activeEffects.appendTag(regeneration.writeCustomPotionEffectToNBT(new NBTTagCompound()));
 				
 				royalGuard.setDataTag(activeEffects);*/
-			}
+			/*}
 		}
 		
 		FacingBlock[] normalStairs = {FacingBlock.stoneSmoothStairsPlusX.copy(), null, null, null};
@@ -286,7 +269,7 @@ public class WorldGenCrypt implements IWorldGenerator
 			{
 				guardsTomb.attachBuilding(royalGuardSarcophagus, 1 + i * 7, 1, 1);
 			}*/
-			
+			/*
 			pointA.reset(4, 1, 4);
 			offset.reset(3, 0, 0);
 			guardsTomb.drawCube(pointA, offset.addCoordinates(pointA), royalGuard);
@@ -435,17 +418,20 @@ public class WorldGenCrypt implements IWorldGenerator
 		stairs.attachBuilding(mainChamber, -3, -1, -17);
 		entrance.attachBuilding(stairs, 0, 0, 5);
 		
-		cryptComplex = entrance;
-	}
+		cryptComplex = entrance;*/
+//	}
 	
 	@Override
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkProvider chunkGenerator, IChunkProvider chunkProvider)
 	{
 		if(chunkX == 5 && chunkZ == 5)
 		{
-			Position drawPosition = new Position(chunkX * 16, 60, chunkZ * 16);
+			Position drawPosition = new Position(chunkX * 16, 0, chunkZ * 16);
+			Position endPosition = new Position(chunkX * 16 + 160, 50, chunkZ * 16 + 160);
 			
-			cryptComplex.drawOnTheWorld(drawPosition, Rotation.NO_ROTATION, random, world);
+			ActiveStructure.fromPositions(drawPosition, endPosition).setPreventSpawn(true);
+			
+			//cryptComplex.drawOnTheWorld(drawPosition, Rotation.NO_ROTATION, random, world);
 		}
 	}
 }

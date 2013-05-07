@@ -8,11 +8,10 @@ import net.minecraft.world.World;
 import taigore.buildapi.Position;
 import taigore.buildapi.Rotation;
 
-public class RandomBuilding implements IAbstractBuilding
+public class RandomBuilding extends AbstractBuilding
 {
 	private int totalChance = 0;
 	private Map<LinkableBuilding, Integer> buildingChances = new LinkedHashMap();
-	private Rotation rotation = Rotation.NO_ROTATION;
 	
 	/**
 	 * Adds a building for random generation.
@@ -58,21 +57,5 @@ public class RandomBuilding implements IAbstractBuilding
 				}
 			}
 		}
-	}
-	@Override
-	public RandomBuilding copy()
-	{
-		RandomBuilding copy = new RandomBuilding();
-		copy.totalChance = this.totalChance;
-		copy.buildingChances.putAll(this.buildingChances);
-		
-		return copy;
-	}
-	
-	@Override
-	public RandomBuilding rotate(Rotation rotation)
-	{
-		this.rotation = this.rotation.add(rotation);
-		return this;
 	}
 }

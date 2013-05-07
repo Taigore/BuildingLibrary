@@ -8,7 +8,7 @@ import net.minecraft.world.World;
 import taigore.buildapi.Position;
 import taigore.buildapi.Rotation;
 
-public abstract class LinkableBuilding implements IAbstractBuilding
+public abstract class LinkableBuilding extends AbstractBuilding
 {
 	private List<BuildingPositionPair> attachedBuildings = new LinkedList();
 	
@@ -17,7 +17,7 @@ public abstract class LinkableBuilding implements IAbstractBuilding
 	 * When this building gets drawn, all attached buildings will be
 	 * drawn at their own offset from the draw point of this building.
 	 */
-	public LinkableBuilding attachBuilding(IAbstractBuilding toAttach, int offsetX, int offsetY, int offsetZ)
+	public LinkableBuilding attachBuilding(AbstractBuilding toAttach, int offsetX, int offsetY, int offsetZ)
 	{
 		if(toAttach != null)
 			this.attachedBuildings.add(new BuildingPositionPair(toAttach, new Position(offsetX, offsetY, offsetZ)));
@@ -63,10 +63,10 @@ public abstract class LinkableBuilding implements IAbstractBuilding
 	 */
 	protected class BuildingPositionPair
 	{
-		protected IAbstractBuilding building;
+		protected AbstractBuilding building;
 		protected Position position;
 		
-		private BuildingPositionPair(IAbstractBuilding building, Position position)
+		private BuildingPositionPair(AbstractBuilding building, Position position)
 		{
 			this.building = building;
 			this.position = position;

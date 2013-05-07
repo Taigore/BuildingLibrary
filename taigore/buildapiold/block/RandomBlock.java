@@ -15,6 +15,20 @@ public class RandomBlock implements IAbstractBlock
 	private Rotation rotation = Rotation.NO_ROTATION;
 	
 	/**
+	 * Default constructor.
+	 */
+	public RandomBlock() {};
+	/**
+	 * Copy constructor.
+	 */
+	public RandomBlock(RandomBlock toCopy)
+	{
+	    this.totalChance = toCopy.totalChance;
+	    this.blocksAndChances.putAll(toCopy.blocksAndChances);
+	    this.rotation = toCopy.rotation;
+	}
+	
+	/**
 	 * Adds a series of blocks to the generation list, with the relevant
 	 * spawn chance. A meta not paired with a spawn chance will be ignored
 	 * (ie: the metadata array is longer than spawn chances array.)
@@ -36,7 +50,10 @@ public class RandomBlock implements IAbstractBlock
 	 */
 	public RandomBlock addBlock(int id, int metadata, int spawnChance)
 	{
-		return this.addBlock(new StaticBlock(id, metadata), spawnChance);
+	   if(spawnChance > 0)
+	       this.addBlock(new StaticBlock(id, metadata), spawnChance);
+	   
+	   return this;
 	}
 	/**
 	 * Adds the spawn chance for a block, defined as an AbstractBlock.
@@ -56,6 +73,15 @@ public class RandomBlock implements IAbstractBlock
 		
 		return this;
 	}
+	
+	/**
+	 * Rotates all random generated blocks the given way.
+	 */
+	public RandomBlock rotate(Rotation facing) { this.rotation = this.rotation.add(facing); return this; }
+	/**
+	 * Resets the rotation of all random generated blocks to the default.
+	 */
+	public RandomBlock resetRotation() { this.rotation = Rotation.NO_ROTATION; return this; }
 
 	@Override
 	public void drawAt(Position startPosition, Rotation facing, Random generator, World canvas)
@@ -81,19 +107,6 @@ public class RandomBlock implements IAbstractBlock
 			}
 		}
 	}
-	@Override
-	public RandomBlock copy()
-	{
-		RandomBlock copy = new RandomBlock();
-		copy.totalChance = this.totalChance;
-		copy.blocksAndChances.putAll(this.blocksAndChances);
-		
-		return copy;
-	}
-	@Override
-	public RandomBlock rotate(Rotation rotation)
-	{
-		this.rotation = this.rotation.add(rotation);
-		return this;
-	}
+	
+	//TODO Equals and hashCode
 }
