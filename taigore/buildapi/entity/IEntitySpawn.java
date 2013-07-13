@@ -4,7 +4,7 @@ import java.util.Random;
 
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 
 public interface IEntitySpawn
 {
@@ -17,5 +17,5 @@ public interface IEntitySpawn
      * Places a new entity from this spawn at the given position,
      * in the given world.
      */
-    void placeInPosition(Position spawnPosition, Random generator, World canvas);
+    void placeInPosition(Vec3Int spawnPosition, Random generator, World canvas);
 }

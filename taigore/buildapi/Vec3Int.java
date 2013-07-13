@@ -3,15 +3,15 @@ package taigore.buildapi;
 import net.minecraft.nbt.NBTTagCompound;
 
 
-public class Position
+public class Vec3Int
 {
 	public int x = 0;
 	public int y = 0;
 	public int z = 0;
 	
-	public Position() {}
-	public Position(Position toCopy) { this.reset(toCopy); }
-	public Position(int posX, int posY, int posZ) { this.reset(posX, posY, posZ); }
+	public Vec3Int() {}
+	public Vec3Int(Vec3Int toCopy) { this.reset(toCopy); }
+	public Vec3Int(int posX, int posY, int posZ) { this.reset(posX, posY, posZ); }
 	
 	/**
 	 * Array like method.
@@ -41,7 +41,7 @@ public class Position
 	 * Returns this.
 	 * @param index - X: 0; Y: 1; Z: 2
 	 */
-	public Position set(int index, int value)
+	public Vec3Int set(int index, int value)
 	{
 		switch(index)
 		{
@@ -68,7 +68,7 @@ public class Position
 	 * Does nothing with a null parameter.
 	 * Returns this.
 	 */
-	public Position reset(Position toCopy)
+	public Vec3Int reset(Vec3Int toCopy)
 	{
 		if(toCopy != null)
 			this.reset(toCopy.x, toCopy.y, toCopy.z);
@@ -79,7 +79,7 @@ public class Position
 	 * Sets the coordinates of this position to the given parameters.
 	 * Returns this.
 	 */
-	public Position reset(int posX, int posY, int posZ)
+	public Vec3Int reset(int posX, int posY, int posZ)
 	{
 		this.x = posX;
 		this.y = posY;
@@ -90,7 +90,7 @@ public class Position
 	 * Rotates the coordinate of this Position around the Y axis.
 	 * Returns this.
 	 */
-	public Position rotate(Rotation facing)
+	public Vec3Int rotate(Rotation facing)
 	{
 		int prevX = this.x;
 		int prevZ = this.z;
@@ -124,7 +124,7 @@ public class Position
 	 * Adds the given position coordinates to this.
 	 * Returns this.
 	 */
-	public Position addCoordinates(Position toAdd)
+	public Vec3Int addCoordinates(Vec3Int toAdd)
 	{
 		this.x += toAdd.x;
 		this.y += toAdd.y;
@@ -153,10 +153,10 @@ public class Position
 	/**
 	 * Reads a Position from an NBTTagCompound.
 	 */
-	public static Position getFromTag(NBTTagCompound nbtData)
+	public static Vec3Int getFromTag(NBTTagCompound nbtData)
 	{
 		if(nbtData.hasKey("X") && nbtData.hasKey("Y") && nbtData.hasKey("Z"))
-			return new Position(nbtData.getInteger("X"), nbtData.getInteger("Y"), nbtData.getInteger("Z"));
+			return new Vec3Int(nbtData.getInteger("X"), nbtData.getInteger("Y"), nbtData.getInteger("Z"));
 		else
 			return null;
 	}

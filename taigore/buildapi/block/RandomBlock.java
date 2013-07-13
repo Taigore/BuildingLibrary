@@ -5,22 +5,16 @@ import java.util.Map;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
 
-public class RandomBlock implements IAbstractBlock
+public class RandomBlock implements IBlock
 {
 	private int totalChance = 0;
-	private Map<IAbstractBlock, Integer> blocksAndChances = new HashMap();
+	private Map<IBlock, Integer> blocksAndChances = new HashMap();
 	private Rotation rotation = Rotation.NO_ROTATION;
 	
-	/**
-	 * Default constructor.
-	 */
 	public RandomBlock() {};
-	/**
-	 * Copy constructor.
-	 */
 	public RandomBlock(RandomBlock toCopy)
 	{
 	    this.totalChance = toCopy.totalChance;
@@ -59,7 +53,7 @@ public class RandomBlock implements IAbstractBlock
 	 * Adds the spawn chance for a block, defined as an AbstractBlock.
 	 * Minimum chance is one, otherwise it won't do anything.
 	 */
-	public RandomBlock addBlock(IAbstractBlock toAdd, int spawnChance)
+	public RandomBlock addBlock(IBlock toAdd, int spawnChance)
 	{
 		if(spawnChance > 0)
 		{
@@ -84,20 +78,20 @@ public class RandomBlock implements IAbstractBlock
 	public RandomBlock resetRotation() { this.rotation = Rotation.NO_ROTATION; return this; }
 
 	@Override
-	public void drawAt(Position startPosition, Rotation facing, Random generator, World canvas)
+	public void drawAt(Vec3Int startPosition, Rotation facing, Random generator, World canvas)
 	{
 		if(startPosition != null)
 		{
 			int randomInt = generator.nextInt(this.totalChance);
 			
-			for(Map.Entry<IAbstractBlock, Integer> toCheck : this.blocksAndChances.entrySet())
+			for(Map.Entry<IBlock, Integer> toCheck : this.blocksAndChances.entrySet())
 			{
 				randomInt -= toCheck.getValue();
 				
 				if(randomInt < 0)
 				{
 					Rotation drawRotation = this.rotation.add(facing);
-					IAbstractBlock drawing = toCheck.getKey();
+					IBlock drawing = toCheck.getKey();
 					
 					if(drawing != StaticBlock.noEdit)
 						drawing.drawAt(startPosition, drawRotation, generator, canvas);

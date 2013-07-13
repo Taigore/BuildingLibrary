@@ -3,9 +3,9 @@ package taigore.buildapi.building;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
-import taigore.buildapi.block.IAbstractBlock;
+import taigore.buildapi.block.IBlock;
 
 /**
  * This class represents a building that is made with a single unit,
@@ -13,7 +13,7 @@ import taigore.buildapi.block.IAbstractBlock;
  */
 public class RepeatingBuilding extends StaticBuilding
 {
-    public final Position repeatOffset = new Position(0, 0, 0);
+    public final Vec3Int repeatOffset = new Vec3Int(0, 0, 0);
 	private int repetitions = 1;
 	
 	/**
@@ -24,7 +24,7 @@ public class RepeatingBuilding extends StaticBuilding
 	 * The number of repetitions is the amount of times the unit will be repeated.
 	 */
 	public RepeatingBuilding(Block3DMap unit) { super(unit); }
-	public RepeatingBuilding(int sizeX, int sizeY, int sizeZ, IAbstractBlock filler) { super(sizeX, sizeY, sizeZ, filler); }
+	public RepeatingBuilding(int sizeX, int sizeY, int sizeZ, IBlock filler) { super(sizeX, sizeY, sizeZ, filler); }
 	/**
 	 * Sets number of times the base structure should be repeated.
 	 */
@@ -36,17 +36,17 @@ public class RepeatingBuilding extends StaticBuilding
 	}
 	
 	@Override
-	public void drawOnTheWorld(Position rotationPoint, Rotation facing, Random generator, World canvas)
+	public void drawOnTheWorld(Vec3Int rotationPoint, Rotation facing, Random generator, World canvas)
 	{
 		if(rotationPoint != null && canvas != null)
 		{
 		    if(generator == null) generator = new Random();
 		    
 			Rotation drawRotation = this.rotation.add(facing);
-			Position drawPosition = new Position(rotationPoint);
-			Position drawPointer = new Position(0, 0, 0);
-			Position rotatedOffset = new Position(this.repeatOffset).rotate(drawRotation);
-			IAbstractBlock[] serializedBuilding = this.buildingMap.getAsBlockArray();
+			Vec3Int drawPosition = new Vec3Int(rotationPoint);
+			Vec3Int drawPointer = new Vec3Int(0, 0, 0);
+			Vec3Int rotatedOffset = new Vec3Int(this.repeatOffset).rotate(drawRotation);
+			IBlock[] serializedBuilding = this.buildingMap.getAsBlockArray();
 			int[] size = this.buildingMap.getDimensions();
 			
 			for(int n = 0; n < this.repetitions; ++n)
@@ -58,7 +58,7 @@ public class RepeatingBuilding extends StaticBuilding
 			            for(int k = 0; k < size[2]; ++k, ++blockIndex)
 			            {
 			                drawPointer.reset(i, j, k).addCoordinates(drawPosition);
-			                IAbstractBlock toDraw = serializedBuilding[blockIndex];
+			                IBlock toDraw = serializedBuilding[blockIndex];
 			                
 			                if(toDraw != null)
 			                    toDraw.drawAt(drawPointer, drawRotation, generator, canvas);

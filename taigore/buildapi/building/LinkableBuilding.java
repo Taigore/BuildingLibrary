@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
 
 public abstract class LinkableBuilding extends AbstractBuilding
@@ -20,7 +20,7 @@ public abstract class LinkableBuilding extends AbstractBuilding
 	public LinkableBuilding attachBuilding(AbstractBuilding toAttach, int offsetX, int offsetY, int offsetZ)
 	{
 		if(toAttach != null)
-			this.attachedBuildings.add(new BuildingPositionPair(toAttach, new Position(offsetX, offsetY, offsetZ)));
+			this.attachedBuildings.add(new BuildingPositionPair(toAttach, new Vec3Int(offsetX, offsetY, offsetZ)));
 		
 		return this;
 	}
@@ -30,11 +30,11 @@ public abstract class LinkableBuilding extends AbstractBuilding
 	 * draw origin (RepeatingBuildings gets its drawOrigin from
 	 * the number of repeats)
 	 */
-	protected void drawAttachedBuildings(Position drawOrigin, Rotation facing, Random generator, World canvas)
+	protected void drawAttachedBuildings(Vec3Int drawOrigin, Rotation facing, Random generator, World canvas)
 	{
 		if(drawOrigin != null)
 		{
-			Position shiftedDrawOrigin = new Position();
+			Vec3Int shiftedDrawOrigin = new Vec3Int();
 			
 			for(BuildingPositionPair toDraw : this.attachedBuildings)
 			{
@@ -64,9 +64,9 @@ public abstract class LinkableBuilding extends AbstractBuilding
 	protected class BuildingPositionPair
 	{
 		protected AbstractBuilding building;
-		protected Position position;
+		protected Vec3Int position;
 		
-		private BuildingPositionPair(AbstractBuilding building, Position position)
+		private BuildingPositionPair(AbstractBuilding building, Vec3Int position)
 		{
 			this.building = building;
 			this.position = position;
@@ -74,7 +74,7 @@ public abstract class LinkableBuilding extends AbstractBuilding
 		
 		public BuildingPositionPair copy()
 		{
-			return new BuildingPositionPair(this.building, new Position(this.position));
+			return new BuildingPositionPair(this.building, new Vec3Int(this.position));
 		}
 	}
 }

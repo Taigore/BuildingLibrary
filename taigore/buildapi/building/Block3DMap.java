@@ -5,21 +5,21 @@ import java.util.List;
 
 import cpw.mods.fml.common.FMLLog;
 
-import taigore.buildapi.Position;
-import taigore.buildapi.block.IAbstractBlock;
+import taigore.buildapi.Vec3Int;
+import taigore.buildapi.block.IBlock;
 
 public class Block3DMap
 {
-    private List<IAbstractBlock> blockIds = new LinkedList();
+    private List<IBlock> blockIds = new LinkedList();
     private byte[] blockMap;
     private int sizeX = 1;
     private int sizeY = 1;
     private int sizeZ = 1;
     
     private int lastId = 0;
-    private IAbstractBlock lastBlock = null;
+    private IBlock lastBlock = null;
     
-    public Block3DMap(int sizeX, int sizeY, int sizeZ, IAbstractBlock filler)
+    public Block3DMap(int sizeX, int sizeY, int sizeZ, IBlock filler)
     {
         if(sizeX > 1) this.sizeX = sizeX;
         if(sizeY > 1) this.sizeY = sizeY;
@@ -38,7 +38,7 @@ public class Block3DMap
     /**
      * Fills the entire block map with the specified block.
      */
-    public Block3DMap fill(IAbstractBlock filler)
+    public Block3DMap fill(IBlock filler)
     {
         this.blockMap = new byte[this.sizeX * this.sizeY * this.sizeZ];
         
@@ -58,7 +58,7 @@ public class Block3DMap
      * Sets the given position to the given block.
      * Private method without coordinate checking.
      */
-    private void uncheckedSetSpot(int posX, int posY, int posZ, IAbstractBlock material)
+    private void uncheckedSetSpot(int posX, int posY, int posZ, IBlock material)
     {
        if(this.lastBlock != material && (this.lastBlock != null && !this.lastBlock.equals(material)))
        {
@@ -84,7 +84,7 @@ public class Block3DMap
      * Sets a spot in the block map, checking that the coordinates
      * are inside the block map volume.
      */
-    public Block3DMap setSpot(int posX, int posY, int posZ, IAbstractBlock material)
+    public Block3DMap setSpot(int posX, int posY, int posZ, IBlock material)
     {
         if(posX >= 0 && posX < this.sizeX && posY >= 0 && posY < this.sizeY && posZ >= 0 && posZ < this.sizeZ)
             this.uncheckedSetSpot(posX, posY, posZ, material);
@@ -98,7 +98,7 @@ public class Block3DMap
      * Uses setSpot(int, int, int, IAbstractBlock), but allows
      * to pass a position as argument.
      */
-    public Block3DMap setSpot(Position toSet, IAbstractBlock material)
+    public Block3DMap setSpot(Vec3Int toSet, IBlock material)
     {
         if(toSet != null)
             this.setSpot(toSet.x, toSet.y, toSet.z, material);
@@ -110,7 +110,7 @@ public class Block3DMap
      * Gets the block at the given coordinates.
      * Does not perform checks on the position and the size of the map.
      */
-    private IAbstractBlock uncheckedGetSpot(int posX, int posY, int posZ)
+    private IBlock uncheckedGetSpot(int posX, int posY, int posZ)
     {
         int realIndex = ((posX * this.sizeY) + posY) * this.sizeZ + posZ;
         return this.blockIds.get(this.blockMap[realIndex]); 
@@ -120,7 +120,7 @@ public class Block3DMap
      * Returns null and gives a warning if the coordinates are outside
      * the map.
      */
-    public IAbstractBlock getSpot(int posX, int posY, int posZ)
+    public IBlock getSpot(int posX, int posY, int posZ)
     {
         if(posX >= 0 && posX < this.sizeX && posY >= 0 && posY < this.sizeY && posZ >= 0 && posZ < this.sizeZ)
             return this.uncheckedGetSpot(posX, posY, posZ);
@@ -135,7 +135,7 @@ public class Block3DMap
      * Uses getSpot(int, int, int), but allows
      * to pass a position as argument.
      */
-    public Block3DMap getSpot(Position toGet)
+    public Block3DMap getSpot(Vec3Int toGet)
     {
         if(toGet != null)
             this.getSpot(toGet.x, toGet.y, toGet.z);
@@ -152,15 +152,15 @@ public class Block3DMap
      * and the map volume.
      * Trying to draw a rectangle fully outside the volume will have no effect whatsoever.
      */
-    public Block3DMap drawCube(Position startPoint, Position endPoint, IAbstractBlock toDraw)
+    public Block3DMap drawCube(Vec3Int startPoint, Vec3Int endPoint, IBlock toDraw)
     {
         if(startPoint != null && endPoint != null)
         {
             int[] maxIndex = {this.sizeX - 1, this.sizeY - 1, this.sizeZ - 1};
             
             //Corrects the positions provided
-            startPoint = new Position(startPoint);
-            endPoint = new Position(endPoint);
+            startPoint = new Vec3Int(startPoint);
+            endPoint = new Vec3Int(endPoint);
             boolean intersects = true;
             
             for(int i = 0; intersects && i < 3; ++i)
@@ -201,15 +201,15 @@ public class Block3DMap
      * Nothing fancy to see, but useful to draw diagonals or slowly rising
      * ramps.
      */
-    public Block3DMap drawLine(Position startPosition, Position endPosition, IAbstractBlock material)
+    public Block3DMap drawLine(Vec3Int startPosition, Vec3Int endPosition, IBlock material)
     {
         if(startPosition != null && endPosition != null)
         {
             int[] maxIndex = {this.sizeX - 1, this.sizeY - 1, this.sizeZ - 1};
             
             //Corrects the positions provided
-            startPosition = new Position(startPosition);
-            endPosition = new Position(endPosition);
+            startPosition = new Vec3Int(startPosition);
+            endPosition = new Vec3Int(endPosition);
             boolean intersects = true;
             
             for(int i = 0; intersects && i < 3; ++i)
@@ -259,9 +259,9 @@ public class Block3DMap
      * The blocks are ordered this way:
      * (X: 0; Y: 0; Z: 0), (X: 0; Y: 0; Z: 1)... (X: 0; Y: 1; Z: 0), (X: 0; Y: 1; Z: 1)... (X: 1; Y: 0; Z: 0)...
      */
-    public IAbstractBlock[] getAsBlockArray()
+    public IBlock[] getAsBlockArray()
     {
-        IAbstractBlock[] serializedVolume = new IAbstractBlock[this.blockMap.length];
+        IBlock[] serializedVolume = new IBlock[this.blockMap.length];
         
         for(int i = 0, blockIndex = 0; i < this.sizeX; ++i)
             for(int j = 0; j < this.sizeY; ++j)

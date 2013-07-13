@@ -3,7 +3,7 @@ package taigore.buildapi.building;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
 
 public abstract class AbstractBuilding
@@ -16,7 +16,7 @@ public abstract class AbstractBuilding
 	 * will always be (rotationX, rotationY, rotationZ).
 	 * Uses generator for random generation.
 	 */
-	abstract void drawOnTheWorld(Position drawOrigin, Rotation facing, Random generator, World canvas);
+	abstract void drawOnTheWorld(Vec3Int drawOrigin, Rotation facing, Random generator, World canvas);
 	/**
 	 * Rotates the building. All drawOnTheWorld calls with NO_ROTATION will
 	 * actually use this rotation, and all other facings will be shifted accordingly.
