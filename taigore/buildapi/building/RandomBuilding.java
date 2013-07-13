@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
 
 public class RandomBuilding extends AbstractBuilding
@@ -38,7 +38,7 @@ public class RandomBuilding extends AbstractBuilding
 	}
 	
 	@Override
-	public void drawOnTheWorld(Position rotationPoint, Rotation facing, Random generator, World canvas)
+	public void drawOnTheWorld(Vec3Int rotationPoint, Rotation facing, Random generator, World canvas)
 	{
 		if(this.totalChance > 0)
 		{

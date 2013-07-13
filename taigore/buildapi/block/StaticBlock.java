@@ -1,39 +1,32 @@
 package taigore.buildapi.block;
 
-import java.util.Random;
-
 import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
 import taigore.buildapi.Rotation;
+import taigore.buildapi.Vec3Int;
 
-public class StaticBlock implements IAbstractBlock
+public class StaticBlock implements IBlock
 {
 	//Common use blocks
+    public static final StaticBlock noEdit = null;
 	public static final StaticBlock air = new StaticBlock(0, 0);
-	public static final StaticBlock ironBars = new StaticBlock(Block.fenceIron.blockID, 0);
-	public static final StaticBlock noEdit = null;
+	public static final StaticBlock ironBars = new StaticBlock(Block.fenceIron, 0);
 	
 	private int id = 0;
 	private int metadata = 0;
-	/**
-	 * Constructor for defining a block from its ID.
-	 * Assumes a default metadata of 0.
-	 */
-	public StaticBlock(int id) { this(id, 0); }
-	/**
-	 * Constructor for defining a block with ID and metadata.
-	 */
-	public StaticBlock(int id, int metadata) { this.resetId(id).resetMeta(metadata); }
-	/**
-	 * Copy constructor.
-	 */
+	private NBTTagCompound tileEntityData = null;
+	
+	public StaticBlock(Block block, int blockMeta) { this(block.blockID, blockMeta); }
+	public StaticBlock(int blockID, int blockMeta) { this.setID(blockID).setMeta(blockMeta); }
 	public StaticBlock(StaticBlock toCopy) { this.id = toCopy.id; this.metadata = toCopy.metadata; }
+	
 	/**
 	 * Sets the ID of the block to the given number.
 	 * Will set to 0 if id is less than 0, otherwise takes the lowest 12 bits.
 	 */
-	public StaticBlock resetId(int id)
+	public StaticBlock setID(int id)
 	{
 	    if(id < 0) id = 0;
 	    this.id = id & 0x00000FFF;
@@ -43,24 +36,56 @@ public class StaticBlock implements IAbstractBlock
 	 * Sets the metadata of the block to the given number.
 	 * Will set to 0 if metadata is less than 0, otherwise takes the lowest 4 bits.
 	 */
-	public StaticBlock resetMeta(int metadata)
+	public StaticBlock setMeta(int metadata)
 	{
 	    if(metadata < 0) metadata = 0;
 	    this.metadata = metadata & 0x0000000F;
 	    return this;
 	}
-
-	@Override
-	public void drawAt(Position startPosition, Rotation facing, Random generator, World canvas)
+	/**
+	 * Saves the properties of the TileEntity provided, to replicate
+	 * them in every block placed.
+	 */
+	public StaticBlock setTileEntityData(TileEntity toSave)
 	{
-		if(canvas != null && startPosition != null)
-			canvas.setBlock(startPosition.x, startPosition.y, startPosition.z, this.id, this.metadata, 0);
+	    if(toSave == null)
+	        this.tileEntityData = null;
+	    else
+	    {
+	        if(this.tileEntityData == null)
+	            this.tileEntityData = new NBTTagCompound();
+	        
+	        toSave.writeToNBT(this.tileEntityData);
+	    }
+	    
+	    return this;
 	}
 	
+	///////////
+	// IBlock
+	///////////
+	@Override
+    public int getBlockID(World world, Vec3Int position, Rotation facing) { return this.id; }
+    @Override
+    public int getBlockMeta(World world, Vec3Int position, Rotation facing) { return this.metadata; }
+    @Override
+    public NBTTagCompound getBlockTileEntityNBT(World world, Vec3Int position, Rotation facing)
+    {
+        if(Block.blocksList[this.id].hasTileEntity(this.metadata))
+            return this.tileEntityData;
+        else
+            return null;
+    }
+	
+    ///////////
+	// Object
+    ///////////
 	@Override
     public boolean equals(Object toCompare)
     {
-        if(toCompare != null && toCompare.getClass() == this.getClass())
+	    if(toCompare == this) return true;
+	    
+        if(StaticBlock.class.isInstance(toCompare))
         {
             StaticBlock blockToCompare = (StaticBlock)toCompare;
             

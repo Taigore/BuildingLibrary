@@ -3,9 +3,9 @@ package taigore.buildapi.building;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
-import taigore.buildapi.block.IAbstractBlock;
+import taigore.buildapi.block.IBlock;
 
 /**
  * This class represents a building with a geometry that will never change,
@@ -20,21 +20,21 @@ public class StaticBuilding extends LinkableBuilding
 	 * Creates a new StaticBuilding, and fills the whole space defined
 	 * by it with the specified filler.
 	 */
-	public StaticBuilding(int sizeX, int sizeY, int sizeZ, IAbstractBlock filler) { this.buildingMap = new Block3DMap(sizeX, sizeY, sizeZ, filler); }
+	public StaticBuilding(int sizeX, int sizeY, int sizeZ, IBlock filler) { this.buildingMap = new Block3DMap(sizeX, sizeY, sizeZ, filler); }
 	public StaticBuilding(StaticBuilding toCopy) { this(toCopy.buildingMap); }
 	public StaticBuilding(Block3DMap toCopy) { this.buildingMap = new Block3DMap(toCopy); }
 	
 	@Override
-	public void drawOnTheWorld(Position drawOrigin, Rotation facing, Random generator, World canvas)
+	public void drawOnTheWorld(Vec3Int drawOrigin, Rotation facing, Random generator, World canvas)
 	{
 		if(canvas != null && drawOrigin != null)
 		{
 		    if(generator == null) generator = new Random();
 		    
 			Rotation drawRotation = this.rotation.add(facing);
-			Position drawPosition = new Position(0, 0, 0);
+			Vec3Int drawPosition = new Vec3Int(0, 0, 0);
 			
-			IAbstractBlock[] blocks = this.buildingMap.getAsBlockArray();
+			IBlock[] blocks = this.buildingMap.getAsBlockArray();
 			int[] size = this.buildingMap.getDimensions();
 			
 			for(int i = 0, blockIndex = 0; i < size[0]; ++i)
@@ -43,7 +43,7 @@ public class StaticBuilding extends LinkableBuilding
 				{
 					for(int k = 0; k < size[2]; ++k, ++blockIndex)
 					{
-						IAbstractBlock toDraw = blocks[blockIndex];
+						IBlock toDraw = blocks[blockIndex];
 						
 						if(toDraw != null)
 						{

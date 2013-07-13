@@ -4,7 +4,7 @@ import java.util.Random;
 
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import taigore.buildapi.Position;
+import taigore.buildapi.Vec3Int;
 import taigore.buildapi.activestructure.ActiveStructure;
 import taigore.buildapi.building.StaticBuilding;
 import cpw.mods.fml.common.IWorldGenerator;
@@ -426,8 +426,8 @@ public class WorldGenCrypt implements IWorldGenerator
 	{
 		if(chunkX == 5 && chunkZ == 5)
 		{
-			Position drawPosition = new Position(chunkX * 16, 0, chunkZ * 16);
-			Position endPosition = new Position(chunkX * 16 + 160, 50, chunkZ * 16 + 160);
+			Vec3Int drawPosition = new Vec3Int(chunkX * 16, 0, chunkZ * 16);
+			Vec3Int endPosition = new Vec3Int(chunkX * 16 + 160, 50, chunkZ * 16 + 160);
 			
 			ActiveStructure.fromPositions(drawPosition, endPosition).setPreventSpawn(true);
 			
