@@ -1,41 +1,27 @@
 package taigore.buildapi.block;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
+import java.util.Random;
 
-public abstract class FacingBlock implements IBlock
+import net.minecraft.world.World;
+import taigore.buildapi.Rotation;
+import taigore.buildapi.Vec3Int;
+
+//TODO Documentation
+public abstract class FacingBlock extends StaticBlock
 {
-	protected int id;
-	protected NBTTagCompound tileEntityData = null;
-	
 	/**
 	 * This kind of block provides a different metadata depending
 	 * on the rotation it is drawn with.
 	 */
-	protected FacingBlock(int id) { this.setID(id); }
+	protected FacingBlock(int id) { super(id, 0); }
 	
-	public FacingBlock setID(int id)
-	{
-	    if(id < 0) id = 0;
-	    this.id = id & 0x00000FFF;
-	    return this;
-	}
 	/**
-     * Saves the properties of the TileEntity provided, to replicate
-     * them in every block placed.
+	 * Returns the metadata value that peekNextBlock should have when called with facing
+     * @param facing - A valid Rotation value
+     * @return A valid metadata value, if the facing is valid
      */
-    public FacingBlock setTileEntityData(TileEntity toSave)
-    {
-        if(toSave == null)
-            this.tileEntityData = null;
-        else
-        {
-            if(this.tileEntityData == null)
-                this.tileEntityData = new NBTTagCompound();
-            
-            toSave.writeToNBT(this.tileEntityData);
-        }
-        
-        return this;
-    }
+	abstract public int getMetaForFacing(Rotation facing);
+	
+	@Override
+    public BlockInfo peekNextBlock(World world, Vec3Int position, Rotation facing, Random generator) { return new BlockInfo(this.id, this.getMetaForFacing(facing), this.tileEntityData); }
 }

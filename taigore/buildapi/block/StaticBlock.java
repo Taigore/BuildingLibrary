@@ -1,5 +1,7 @@
 package taigore.buildapi.block;
 
+import java.util.Random;
+
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -14,13 +16,20 @@ public class StaticBlock implements IBlock
 	public static final StaticBlock air = new StaticBlock(0, 0);
 	public static final StaticBlock ironBars = new StaticBlock(Block.fenceIron, 0);
 	
-	private int id = 0;
-	private int metadata = 0;
-	private NBTTagCompound tileEntityData = null;
+	protected int id = -1;
+	protected int metadata = -1;
+	protected NBTTagCompound tileEntityData = null;
 	
+	public StaticBlock(Block block) { this(block, 0); }
 	public StaticBlock(Block block, int blockMeta) { this(block.blockID, blockMeta); }
-	public StaticBlock(int blockID, int blockMeta) { this.setID(blockID).setMeta(blockMeta); }
-	public StaticBlock(StaticBlock toCopy) { this.id = toCopy.id; this.metadata = toCopy.metadata; }
+	public StaticBlock(int blockID, int blockMeta) { this(blockID, blockMeta, null); }
+	public StaticBlock(int blockID, int blockMeta, NBTTagCompound tileEntityData) { this.setID(blockID).setMeta(blockMeta).setTileEntityData(tileEntityData); }
+	public StaticBlock(StaticBlock toCopy)
+	{
+	    this(toCopy != null ? toCopy.id : -1,
+	         toCopy != null ? toCopy.metadata : -1,
+	         toCopy != null ? toCopy.tileEntityData : null);
+	}
 	
 	/**
 	 * Sets the ID of the block to the given number.
@@ -28,8 +37,7 @@ public class StaticBlock implements IBlock
 	 */
 	public StaticBlock setID(int id)
 	{
-	    if(id < 0) id = 0;
-	    this.id = id & 0x00000FFF;
+	    this.id = id;
 	    return this;
 	}
 	/**
@@ -38,44 +46,44 @@ public class StaticBlock implements IBlock
 	 */
 	public StaticBlock setMeta(int metadata)
 	{
-	    if(metadata < 0) metadata = 0;
-	    this.metadata = metadata & 0x0000000F;
+	    this.metadata = metadata;
 	    return this;
 	}
 	/**
-	 * Saves the properties of the TileEntity provided, to replicate
-	 * them in every block placed.
+	 * Copies the NBTTagCompound provided, to use it in the placement of the block, if
+	 * the Block type has a tile entity.
 	 */
-	public StaticBlock setTileEntityData(TileEntity toSave)
-	{
-	    if(toSave == null)
-	        this.tileEntityData = null;
-	    else
-	    {
-	        if(this.tileEntityData == null)
-	            this.tileEntityData = new NBTTagCompound();
-	        
-	        toSave.writeToNBT(this.tileEntityData);
-	    }
-	    
-	    return this;
-	}
+	public StaticBlock setTileEntityData(NBTTagCompound tileEntityData) { this.tileEntityData = (NBTTagCompound)(tileEntityData != null ? tileEntityData.copy() : null); return this; }
 	
 	///////////
 	// IBlock
 	///////////
 	@Override
-    public int getBlockID(World world, Vec3Int position, Rotation facing) { return this.id; }
-    @Override
-    public int getBlockMeta(World world, Vec3Int position, Rotation facing) { return this.metadata; }
-    @Override
-    public NBTTagCompound getBlockTileEntityNBT(World world, Vec3Int position, Rotation facing)
+    public void placeBlock(World world, Vec3Int position, Rotation facing, Random generator)
     {
-        if(Block.blocksList[this.id].hasTileEntity(this.metadata))
-            return this.tileEntityData;
-        else
-            return null;
+        if(world != null && position != null)
+        {
+            BlockInfo blockData = this.getNextBlock(world, position, facing, generator);
+            
+            if(blockData != null && blockData.isValid())
+            {
+                world.setBlock(position.x, position.y, position.z, blockData.id, blockData.meta, 2);
+            
+                TileEntity blockTileEntity = world.getBlockTileEntity(position.x, position.y, position.z);
+                NBTTagCompound tileEntityData = blockData.getTileEntityData();
+                
+                if(tileEntityData != null)
+                    blockTileEntity.readFromNBT(tileEntityData);
+            }
+        }
     }
+	
+	@Override
+	public StaticBlock copy() { return new StaticBlock(this); }
+    @Override
+    public BlockInfo peekNextBlock(World world, Vec3Int position, Rotation facing, Random generator) { return new BlockInfo(this.id, this.metadata, this.tileEntityData); }
+    @Override
+    public BlockInfo getNextBlock(World world, Vec3Int position, Rotation facing, Random generator) { return this.peekNextBlock(world, position, facing, generator); }
 	
     ///////////
 	// Object
@@ -89,7 +97,7 @@ public class StaticBlock implements IBlock
         {
             StaticBlock blockToCompare = (StaticBlock)toCompare;
             
-            return this.id == blockToCompare.id && this.metadata == blockToCompare.metadata;
+            return this.id == blockToCompare.id && this.metadata == blockToCompare.metadata && this.tileEntityData.equals(blockToCompare.tileEntityData);
         }
         else return false;
     }

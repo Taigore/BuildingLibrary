@@ -20,11 +20,11 @@ public enum Rotation
 	 * with each clockwise rotation incrementing by one.
 	 * @return
 	 */
-	public int getID() { return allFacings.indexOf(this); }
+	public int getIndex() { return allFacings.indexOf(this); }
 	/**
 	 * Returns the rotation associated with the given ID.
 	 */
-	public static Rotation getFromID(int id)
+	public static Rotation getFromIndex(int id)
 	{
 		if(id >= 0 && id < allFacings.size())
 			return allFacings.get(id);

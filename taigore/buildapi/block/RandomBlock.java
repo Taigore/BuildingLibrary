@@ -4,103 +4,155 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import taigore.buildapi.Vec3Int;
 import taigore.buildapi.Rotation;
+import taigore.buildapi.Vec3Int;
+import taigore.buildapi.utils.RandomSelector;
 
-public class RandomBlock implements IBlock
+public class RandomBlock extends RandomSelector implements IBlock
 {
-	private int totalChance = 0;
-	private Map<IBlock, Integer> blocksAndChances = new HashMap();
-	private Rotation rotation = Rotation.NO_ROTATION;
-	
-	public RandomBlock() {};
-	public RandomBlock(RandomBlock toCopy)
+    private Map<ParamSet, BlockInfo> savedPeeks = new HashMap();
+    
+    public RandomBlock() {};
+    public RandomBlock(RandomBlock toCopy)
+    {
+        this.probabilityMap.putAll(toCopy.probabilityMap);
+        this.totalProbability = toCopy.totalProbability;
+        this.savedPeeks.putAll(toCopy.savedPeeks);
+    }
+    
+	public RandomBlock addBlocks(IBlock...toAdd)
 	{
-	    this.totalChance = toCopy.totalChance;
-	    this.blocksAndChances.putAll(toCopy.blocksAndChances);
-	    this.rotation = toCopy.rotation;
-	}
-	
+	    for(IBlock block : toAdd)
+	        this.addBlock(block, 1);
+	    
+	    return this;
+	};
 	/**
-	 * Adds a series of blocks to the generation list, with the relevant
-	 * spawn chance. A meta not paired with a spawn chance will be ignored
-	 * (ie: the metadata array is longer than spawn chances array.)
-	 * A spawn chance of 0 or less will not add the corresponding metadata.
-	 */
-	public RandomBlock addBlocks(int id, int[] metadata, int[] spawnChances)
-	{
-		if(metadata != null && spawnChances != null)
-		{
-			for(int i = 0; i < Math.min(metadata.length, spawnChances.length); ++i)
-				this.addBlock(id, metadata[i], spawnChances[i]);
-		}
-		
-		return this;
-	}
-	/**
-	 * Adds the spawn chance for a block, defined by id and meta.
-	 * Minimum chance is one, otherwise it won't do anything.
-	 */
-	public RandomBlock addBlock(int id, int metadata, int spawnChance)
-	{
-	   if(spawnChance > 0)
-	       this.addBlock(new StaticBlock(id, metadata), spawnChance);
-	   
-	   return this;
-	}
-	/**
-	 * Adds the spawn chance for a block, defined as an AbstractBlock.
-	 * Minimum chance is one, otherwise it won't do anything.
+	 * Adds a block to the selection this block has.
+	 * If spawn chance is 0 nothing happens.
+	 * If spawn chance is positive and the block is already included, the
+	 * chance of it getting selected increases.
+	 * If spawn chance is negative and the block is already included, its
+	 * spawn chance get reduced up to 0, then it is removed.
+	 * If the block is not included, nothing happens
 	 */
 	public RandomBlock addBlock(IBlock toAdd, int spawnChance)
 	{
-		if(spawnChance > 0)
-		{
-			this.totalChance += spawnChance;
-			
-			if(this.blocksAndChances.containsKey(toAdd))
-				spawnChance += this.blocksAndChances.get(toAdd);
-			
-			this.blocksAndChances.put(toAdd, spawnChance);
-		}
+		this.addObject(toAdd.copy(), spawnChance);
 		
 		return this;
 	}
 	
-	/**
-	 * Rotates all random generated blocks the given way.
-	 */
-	public RandomBlock rotate(Rotation facing) { this.rotation = this.rotation.add(facing); return this; }
-	/**
-	 * Resets the rotation of all random generated blocks to the default.
-	 */
-	public RandomBlock resetRotation() { this.rotation = Rotation.NO_ROTATION; return this; }
-
-	@Override
-	public void drawAt(Vec3Int startPosition, Rotation facing, Random generator, World canvas)
-	{
-		if(startPosition != null)
-		{
-			int randomInt = generator.nextInt(this.totalChance);
-			
-			for(Map.Entry<IBlock, Integer> toCheck : this.blocksAndChances.entrySet())
-			{
-				randomInt -= toCheck.getValue();
-				
-				if(randomInt < 0)
-				{
-					Rotation drawRotation = this.rotation.add(facing);
-					IBlock drawing = toCheck.getKey();
-					
-					if(drawing != StaticBlock.noEdit)
-						drawing.drawAt(startPosition, drawRotation, generator, canvas);
-					
-					break;
-				}
-			}
-		}
-	}
+	///////////
+	// IBlock
+	///////////
+    @Override
+    public void placeBlock(World world, Vec3Int position, Rotation facing, Random generator)
+    {
+        BlockInfo toPlace = this.getNextBlock(world, position, facing, generator);
+        
+        if(toPlace != null && toPlace.isValid())
+        {
+            world.setBlock(position.x, position.y, position.z, toPlace.id, toPlace.meta, 2);
+            
+            TileEntity blockTileEntity = world.getBlockTileEntity(position.x, position.y, position.z);
+            NBTTagCompound tileEntityData = toPlace.getTileEntityData();
+            
+            if(tileEntityData != null && blockTileEntity != null)
+                blockTileEntity.readFromNBT(tileEntityData);
+        }
+    }
+    @Override
+    public BlockInfo peekNextBlock(World world, Vec3Int position, Rotation facing, Random generator)
+    {
+        BlockInfo returnValue = null;
+        
+        if(world != null && position != null)
+        {
+            if(facing == null)
+                facing = Rotation.NO_ROTATION;
+            
+            ParamSet paramSet = new ParamSet();
+            paramSet.world = world;
+            paramSet.position = position;
+            paramSet.facing = facing;
+            paramSet.generator = generator;
+            
+            if(this.savedPeeks.containsKey(paramSet))
+                returnValue = this.savedPeeks.get(paramSet);
+            else
+            {
+                IBlock selected = (IBlock) this.select(generator);
+                
+                if(selected != null)
+                    returnValue = selected.peekNextBlock(world, position, facing, generator);
+                
+                this.savedPeeks.put(paramSet, returnValue);
+            }
+        }
+        
+        return returnValue;
+    }
+    @Override
+    public BlockInfo getNextBlock(World world, Vec3Int position, Rotation facing, Random generator)
+    {
+        BlockInfo returnValue = null;
+        
+        if(world != null && position != null)
+        {
+            if(facing == null)
+                facing = Rotation.NO_ROTATION;
+            
+            ParamSet paramSet = new ParamSet();
+            paramSet.world = world;
+            paramSet.position = position;
+            paramSet.facing = facing;
+            paramSet.generator = generator;
+            
+            if(this.savedPeeks.containsKey(paramSet))
+                returnValue = this.savedPeeks.remove(paramSet);
+            else
+            {
+                IBlock selected = (IBlock) this.select(generator);
+                
+                if(selected != null)
+                    returnValue = selected.getNextBlock(world, position, facing, generator);
+            }
+        }
+        
+        return returnValue;
+    }
+    @Override
+    public IBlock copy() { return new RandomBlock(this); }
 	
 	//TODO Equals and hashCode
+    
+    static private class ParamSet
+    {
+        public World world;
+        public Vec3Int position;
+        public Rotation facing;
+        public Random generator;
+        
+        @Override
+        public boolean equals(Object toCompare)
+        {
+            if(this == toCompare) return true;
+            
+            if(this.getClass().isInstance(toCompare))
+            {
+                ParamSet paramsToCompare = (ParamSet)toCompare;
+                
+                return this.world.equals(paramsToCompare.world)
+                    && this.position.equals(paramsToCompare)
+                    && this.facing.equals(facing)
+                    && this.generator.equals(generator);
+            }
+            
+            return false;
+        }
+    }
 }

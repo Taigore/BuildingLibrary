@@ -160,4 +160,23 @@ public class Vec3Int
 		else
 			return null;
 	}
+	
+	///////////
+	// Object
+	///////////
+	public boolean equals(Object toCompare)
+	{
+	    if(this == toCompare) return true;
+	    
+	    if(this.getClass().isInstance(toCompare))
+	    {
+	        Vec3Int positionToCompare = (Vec3Int)toCompare;
+	        
+	        return this.x == positionToCompare.x
+	            && this.y == positionToCompare.y
+	            && this.z == positionToCompare.z;
+	    }
+	    
+	    return false;
+	}
 }
