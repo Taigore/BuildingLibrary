@@ -1,98 +1,108 @@
 package taigore.buildapi.block;
 
+
+import java.util.Random;
+
+import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import taigore.buildapi.Rotation;
-import taigore.buildapi.Vec3Int;
+import taigore.buildapi.utils.Rotation;
+import taigore.buildapi.utils.Vec3Int;
 
 public class StaticBlock implements IBlock
 {
-	//Common use blocks
-    public static final StaticBlock noEdit = null;
-	public static final StaticBlock air = new StaticBlock(0, 0);
-	public static final StaticBlock ironBars = new StaticBlock(Block.fenceIron, 0);
+	protected int id = -1;
+	protected int metadata = -1;
+	protected NBTTagCompound tileEntityData = null;
 	
-	private int id = 0;
-	private int metadata = 0;
-	private NBTTagCompound tileEntityData = null;
-	
+	public StaticBlock(Block block) { this(block, 0); }
 	public StaticBlock(Block block, int blockMeta) { this(block.blockID, blockMeta); }
-	public StaticBlock(int blockID, int blockMeta) { this.setID(blockID).setMeta(blockMeta); }
-	public StaticBlock(StaticBlock toCopy) { this.id = toCopy.id; this.metadata = toCopy.metadata; }
-	
-	/**
-	 * Sets the ID of the block to the given number.
-	 * Will set to 0 if id is less than 0, otherwise takes the lowest 12 bits.
-	 */
-	public StaticBlock setID(int id)
+	public StaticBlock(int blockID, int blockMeta) { this(blockID, blockMeta, null); }
+	public StaticBlock(int blockID, int blockMeta, NBTTagCompound tileEntityData)
 	{
-	    if(id < 0) id = 0;
-	    this.id = id & 0x00000FFF;
-	    return this;
+	    this.id = blockID;
+	    this.metadata = blockMeta;
+	    this.tileEntityData = (NBTTagCompound) (tileEntityData != null ? tileEntityData.copy() : null);
 	}
-	/**
-	 * Sets the metadata of the block to the given number.
-	 * Will set to 0 if metadata is less than 0, otherwise takes the lowest 4 bits.
-	 */
-	public StaticBlock setMeta(int metadata)
+	public StaticBlock(StaticBlock toCopy)
 	{
-	    if(metadata < 0) metadata = 0;
-	    this.metadata = metadata & 0x0000000F;
-	    return this;
-	}
-	/**
-	 * Saves the properties of the TileEntity provided, to replicate
-	 * them in every block placed.
-	 */
-	public StaticBlock setTileEntityData(TileEntity toSave)
-	{
-	    if(toSave == null)
-	        this.tileEntityData = null;
-	    else
-	    {
-	        if(this.tileEntityData == null)
-	            this.tileEntityData = new NBTTagCompound();
-	        
-	        toSave.writeToNBT(this.tileEntityData);
-	    }
-	    
-	    return this;
+	    this(toCopy != null ? toCopy.id : -1,
+	         toCopy != null ? toCopy.metadata : -1,
+	         toCopy != null ? toCopy.tileEntityData : null);
 	}
 	
 	///////////
 	// IBlock
 	///////////
 	@Override
-    public int getBlockID(World world, Vec3Int position, Rotation facing) { return this.id; }
-    @Override
-    public int getBlockMeta(World world, Vec3Int position, Rotation facing) { return this.metadata; }
-    @Override
-    public NBTTagCompound getBlockTileEntityNBT(World world, Vec3Int position, Rotation facing)
+    public void placeBlock(World world, Vec3Int position, Rotation facing, Random generator)
     {
-        if(Block.blocksList[this.id].hasTileEntity(this.metadata))
-            return this.tileEntityData;
-        else
-            return null;
+	    if(world != null && position != null)
+	    {
+            BlockInfo blockData = this.getNextBlock(world, position, facing, generator);
+            
+            if(blockData != null && blockData.isValid())
+            {
+                world.setBlock(position.x, position.y, position.z, blockData.id, blockData.meta, 2);
+            
+                TileEntity blockTileEntity = world.getBlockTileEntity(position.x, position.y, position.z);
+                NBTTagCompound tileEntityData = blockData.getTileEntityData();
+                
+                if(tileEntityData != null)
+                    blockTileEntity.readFromNBT(tileEntityData);
+            }
+	    }
     }
 	
+    @Override
+    public BlockInfo peekNextBlock(World world, Vec3Int position, Rotation facing, Random generator) { return new BlockInfo(this.id, this.metadata, this.tileEntityData); }
+    @Override
+    public BlockInfo getNextBlock(World world, Vec3Int position, Rotation facing, Random generator) { return this.peekNextBlock(world, position, facing, generator); }
+
     ///////////
 	// Object
     ///////////
 	@Override
     public boolean equals(Object toCompare)
     {
+	    if(toCompare == null) return false;
 	    if(toCompare == this) return true;
 	    
-        if(StaticBlock.class.isInstance(toCompare))
+        if(this.getClass() == toCompare.getClass())
         {
             StaticBlock blockToCompare = (StaticBlock)toCompare;
             
-            return this.id == blockToCompare.id && this.metadata == blockToCompare.metadata;
+            if(this.tileEntityData != null)
+                return !this.tileEntityData.equals(blockToCompare.tileEntityData);
+            else if(blockToCompare.tileEntityData != null)
+                return false;
+            
+            return this.id == blockToCompare.id
+                && this.metadata == blockToCompare.metadata;
         }
-        else return false;
+        
+        return false;
     }
-    @Override
-    public int hashCode() { return ((this.metadata & 0x0000000F) << 12) | (this.id & 0x00000FFF); }
+	@Override
+    public StaticBlock clone()
+	{
+	    try
+	    {
+    	    StaticBlock returnValue = (StaticBlock)super.clone();
+    	    
+    	    if(returnValue.tileEntityData != null)
+    	        returnValue.tileEntityData = (NBTTagCompound) returnValue.tileEntityData.copy();
+    	    
+    	    return returnValue;
+	    }
+	    catch (CloneNotSupportedException e)
+        {
+	        FMLLog.info("Clone failed");
+            e.printStackTrace();
+            
+            return null;
+        }
+	}
 }

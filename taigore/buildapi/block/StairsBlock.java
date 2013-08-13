@@ -1,33 +1,61 @@
 package taigore.buildapi.block;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.World;
-import taigore.buildapi.Rotation;
-import taigore.buildapi.Vec3Int;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockStairs;
+import taigore.buildapi.utils.Rotation;
 
+/**
+ * Easy declaration of stairs FacingBlock
+ * @author Taigore
+ */
 public class StairsBlock extends FacingBlock
 {
-    //TODO THIS!
-    @Override
-    public int getBlockID(World world, Vec3Int position, Rotation facing)
+    //Metadata values for rotation.
+    //Value 0 has the stairs with the back facing North, then clockwise from there
+    public static int[] rotationMetaNormal0BackToNorth = {3, 0, 2, 1};
+    
+    //If the stairs are upside down
+    public boolean upsideDown = false;
+    
+    public StairsBlock(StairsType type, Rotation rotationFromNorth, boolean upsideDown)
     {
-        // TODO Auto-generated method stub
-        return 0;
+        super(type.type.blockID, rotationFromNorth);
+        this.upsideDown = upsideDown;
     }
     
+    ////////////////
+    // FacingBlock
+    ////////////////
     @Override
-    public int getBlockMeta(World world, Vec3Int position, Rotation facing)
+    public int getMetaForFacing(Rotation facing)
     {
-        // TODO Auto-generated method stub
-        return 0;
+        facing = this.facing.add(facing);
+        
+        return rotationMetaNormal0BackToNorth[facing.getIndex()] | (this.upsideDown ? 4 : 0);
     }
     
-    @Override
-    public NBTTagCompound getBlockTileEntityNBT(World world, Vec3Int position,
-            Rotation facing)
+//////////////////////////////////////////////////////////////////////////////////////////////////
+    public static enum StairsType
     {
-        // TODO Auto-generated method stub
-        return null;
+        BRICK((BlockStairs)Block.stairsBrick),
+        COBBLESTONE((BlockStairs)Block.stairsCobblestone),
+        NETHERBRICK((BlockStairs)Block.stairsNetherBrick),
+        NETHERQUARTZ((BlockStairs)Block.stairsNetherQuartz),
+        SANDSTONE((BlockStairs)Block.stairsSandStone),
+        STONEBRICK((BlockStairs)Block.stairsStoneBrick),
+        WOODBIRCH((BlockStairs)Block.stairsWoodBirch),
+        WOODJUNGLE((BlockStairs)Block.stairsWoodJungle),
+        WOODOAK((BlockStairs)Block.stairsWoodOak),
+        WOODSPRUCE((BlockStairs)Block.stairsWoodSpruce);
+        
+        public final BlockStairs type;
+        
+        StairsType(BlockStairs type)
+        {
+            if(type == null)
+                throw new IllegalArgumentException("Taigore Building Library - unable to initialize enum StairsType: null stair type");
+            
+            this.type = type;
+        }
     }
-    
 }

@@ -4,7 +4,7 @@ import java.util.Random;
 
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.world.World;
-import taigore.buildapi.Vec3Int;
+import taigore.buildapi.utils.Vec3Int;
 
 public interface IEntitySpawn
 {

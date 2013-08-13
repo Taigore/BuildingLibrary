@@ -1,4 +1,4 @@
-package taigore.buildapi;
+package taigore.buildapi.utils;
 
 
 public enum MagicalEffect

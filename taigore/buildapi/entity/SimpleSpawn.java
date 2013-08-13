@@ -9,7 +9,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
-import taigore.buildapi.Vec3Int;
+import taigore.buildapi.utils.Vec3Int;
 import cpw.mods.fml.common.FMLLog;
 
 public class SimpleSpawn implements IEntitySpawn
