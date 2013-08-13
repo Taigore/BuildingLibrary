@@ -10,7 +10,7 @@ import net.minecraft.nbt.NBTTagFloat;
 import net.minecraft.nbt.NBTTagInt;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.potion.PotionEffect;
-import taigore.buildapi.MagicalEffect;
+import taigore.buildapi.utils.MagicalEffect;
 
 public class LivingSpawn extends SimpleSpawn
 {

@@ -1,4 +1,4 @@
-package taigore.buildapi;
+package taigore.buildapi.utils;
 
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -135,7 +135,7 @@ public class Vec3Int
 	@Override
 	public String toString()
 	{
-		return String.format("X: %d\tY: %d\tZ: %d", this.x, this.y, this.z);
+		return String.format("(%d; %d; %d)", this.x, this.y, this.z);
 	}
 	/**
 	 * Saves this position on an NBTTag.

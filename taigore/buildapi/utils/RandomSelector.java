@@ -4,12 +4,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-public class RandomSelector
+import cpw.mods.fml.common.FMLLog;
+
+//TODO Cloneable
+public class RandomSelector<Type> implements Cloneable
 {
-    private final Random fallbackGenerator = new Random();
+    private Random fallbackGenerator = new Random();
     
-    protected Map<Object, Integer> probabilityMap = new HashMap();
-    protected int totalProbability = 0;
+    private Map<Type, Integer> probabilityMap = new HashMap();
+    private int totalProbability = 0;
+    
+    public RandomSelector() {};
+    public RandomSelector(RandomSelector<Type> toCopy)
+    {
+        this.probabilityMap.putAll(toCopy.probabilityMap);
+        this.totalProbability = toCopy.totalProbability;
+    }
     
     /**
      * Adds a new object to the random selection list.
@@ -19,7 +29,7 @@ public class RandomSelector
      * @param toAdd
      * @param probability
      */
-    protected void addObject(Object toAdd, int probability)
+    protected void addObject(Type toAdd, int probability)
     {
         if(probabilityMap.containsKey(toAdd))
         {
@@ -45,7 +55,7 @@ public class RandomSelector
      * @param generator - A non null generator
      * @return Null if this selector has no values to choose from, a value from its table otherwise (even null if it was added)
      */
-    protected Object select(Random generator)
+    protected Type select(Random generator)
     {
         if(this.totalProbability > 0 && !this.probabilityMap.isEmpty())
         {
@@ -54,17 +64,41 @@ public class RandomSelector
             
             int draw = generator.nextInt(this.totalProbability);
             
-            for(Map.Entry<Object, Integer> toCheck : this.probabilityMap.entrySet())
+            for(Map.Entry<Type, Integer> toCheck : this.probabilityMap.entrySet())
             {
                 draw -= toCheck.getValue();
                 
                 if(draw < 0)
-                    return toCheck.getValue();
+                    return toCheck.getKey();
             }
         }
         
         return null;
     }
+    
+    ///////////
+    // Object
+    ///////////
+    @Override
+    public RandomSelector clone()
+	{
+	    try
+	    {
+    	    RandomSelector returnValue = (RandomSelector)super.clone();
+    	    
+    	    returnValue.fallbackGenerator = new Random();
+    	    returnValue.probabilityMap = new HashMap(this.probabilityMap);
+    	    
+    	    return returnValue;
+	    }
+	    catch (CloneNotSupportedException e)
+        {
+            FMLLog.info("Clone failed");
+            e.printStackTrace();
+            
+            return null;
+        }
+	}
     
     @Override
     public boolean equals(Object toCompare)
@@ -87,5 +121,5 @@ public class RandomSelector
      * @param toCheck - An object
      * @return 0 for not included objects, a number between 1.0 (inclusive) and 0.0 (exclusive) otherwise.
      */
-    protected double getProbability(Object toCheck) { return this.probabilityMap.containsKey(toCheck) ? (double)this.probabilityMap.get(toCheck) / this.totalProbability : 0; }
+    public double getProbability(Type toCheck) { return this.probabilityMap.containsKey(toCheck) ? (double)this.probabilityMap.get(toCheck) / this.totalProbability : 0; }
 }
