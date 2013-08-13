@@ -1,38 +1,39 @@
 package taigore.buildapi.building;
 
-import java.util.LinkedList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
+import net.minecraft.util.Vec3;
+import taigore.buildapi.block.IBlock;
+import taigore.buildapi.utils.Vec3Int;
 import cpw.mods.fml.common.FMLLog;
 
-import taigore.buildapi.Vec3Int;
-import taigore.buildapi.block.IBlock;
-
-public class Block3DMap
+public class Block3DMap implements Cloneable
 {
-    private List<IBlock> blockIds = new LinkedList();
-    private byte[] blockMap;
-    private int sizeX = 1;
-    private int sizeY = 1;
-    private int sizeZ = 1;
+    //Block register
+    protected Set<IBlock> blockIndex = new LinkedHashSet();
+    protected byte[] blockMap;
     
-    private int lastId = 0;
+    private IBlock[] blockIndexArrayFormCache;
+    private List<IBlock> blockIndexListFormCache;
+    
+    public final int sizeX;
+    public final int sizeY;
+    public final int sizeZ;
+    
+    //Placement cache
+    private int lastID = 0;
     private IBlock lastBlock = null;
     
     public Block3DMap(int sizeX, int sizeY, int sizeZ, IBlock filler)
     {
-        if(sizeX > 1) this.sizeX = sizeX;
-        if(sizeY > 1) this.sizeY = sizeY;
-        if(sizeZ > 1) this.sizeZ = sizeZ;
+        this.sizeX = Math.max(1, sizeX);
+        this.sizeY = Math.max(1, sizeY);
+        this.sizeZ = Math.max(1, sizeZ);
         
         this.fill(filler);
-    }
-    public Block3DMap(Block3DMap toCopy)
-    {
-        this.sizeX = toCopy.sizeX;
-        this.sizeY = toCopy.sizeY;
-        this.sizeZ = toCopy.sizeZ;
-        this.blockIds.addAll(toCopy.blockIds);
     }
     
     /**
@@ -42,54 +43,101 @@ public class Block3DMap
     {
         this.blockMap = new byte[this.sizeX * this.sizeY * this.sizeZ];
         
-        this.blockIds.clear();
-        this.blockIds.add(filler);
+        this.blockIndex.clear();
+        this.blockIndex.add(filler);
         
         this.lastBlock = filler;
-        this.lastId = 0;
+        this.lastID = 0;
         
         return this;
+    }
+    /**
+     * Gets the block with the given ID
+     * @param id - A valid ID
+     * @return An IBlock from this.blockIDs
+     */
+    protected IBlock getBlockFromID(int id) throws ArrayIndexOutOfBoundsException
+    {
+        if(id < 0 || id >= this.blockIndex.size()) throw new ArrayIndexOutOfBoundsException(String.format("invalid id %d", id));
+        
+        if(this.blockIndexArrayFormCache == null)
+        {
+            this.blockIndexArrayFormCache = this.blockIndex.toArray(new IBlock[this.blockIndex.size()]);
+            this.blockIndexListFormCache = Arrays.asList(this.blockIndexArrayFormCache);
+        }
+        
+        return this.blockIndexArrayFormCache[id];
+    }
+    /**
+     * Returns the index of the given block
+     * @param block
+     * @return A byte between 0 and Byte.MAX_VALUE, or -1 if the block is not index
+     */
+    protected byte getIDFromBlock(IBlock block)
+    {
+        if(this.blockIndexArrayFormCache == null)
+        {
+            this.blockIndexArrayFormCache = this.blockIndex.toArray(new IBlock[this.blockIndex.size()]);
+            this.blockIndexListFormCache = Arrays.asList(this.blockIndexArrayFormCache);
+        }
+        
+        return (byte)this.blockIndexListFormCache.indexOf(block);
+    }
+    /**
+     * Adds a new block to the block index, and returns its ID.
+     * @param toAdd - A block
+     * @return A byte between 0 and Byte.MAX_VALUE
+     * @throws RuntimeException If more than Byte.MAX_VALUE blocks are in the index
+     */
+    protected byte addBlockID(IBlock toAdd) throws RuntimeException
+    {
+        //IDs are capped to a byte. With the block system, no structure should need more than
+        //127 block type, since a structure that huge and complex should be made with smaller
+        //subcomponents, rather than an immense super-structure.
+        if(this.blockIndex.size() > Byte.MAX_VALUE) throw new RuntimeException(String.format("too many block types", Byte.MAX_VALUE));
+        
+        if(this.blockIndex.add(toAdd))
+        {
+            this.blockIndexArrayFormCache = null;
+            this.blockIndexListFormCache = null;
+        }
+        
+        return this.getIDFromBlock(toAdd);
     }
     
     //////////////////////////////
     // Low level set/get methods
     //////////////////////////////
     /**
-     * Sets the given position to the given block.
-     * Private method without coordinate checking.
+     * Sets a spot in the block map.
+     * @throws ArrayIndexOutOfBoundsException If the point is outside the map volume.
+     * @throws RuntimeException When the map has more than Byte.MAX_VALUE block types.
      */
-    private void uncheckedSetSpot(int posX, int posY, int posZ, IBlock material)
+    public Block3DMap setSpot(int posX, int posY, int posZ, IBlock material) throws Exception
     {
-       if(this.lastBlock != material && (this.lastBlock != null && !this.lastBlock.equals(material)))
-       {
-           this.lastBlock = material;
-           this.lastId = this.blockIds.indexOf(material);
-           
-           if(this.lastId < 0)
-           {
-               //IDs are capped to a byte. With the block system, no structure should need more than
-               //127 block type, since a structure that huge and complex should be made with smaller
-               //subcomponents, rather than an immense super-structure.
-               if(this.blockIds.size() > Byte.MAX_VALUE) throw new RuntimeException(String.format("Taigore BuildingLibrary: no more than %d block types allowed for a building.", Byte.MAX_VALUE));
-               
-               this.lastId = this.blockIds.size();
-               this.blockIds.add(material);
-           }
-       }
-        
-       int realIndex = ((posX * this.sizeY) + posY) * this.sizeZ + posZ;
-       this.blockMap[realIndex] = (byte)(this.lastId & Byte.MAX_VALUE);
-    }
-    /**
-     * Sets a spot in the block map, checking that the coordinates
-     * are inside the block map volume.
-     */
-    public Block3DMap setSpot(int posX, int posY, int posZ, IBlock material)
-    {
-        if(posX >= 0 && posX < this.sizeX && posY >= 0 && posY < this.sizeY && posZ >= 0 && posZ < this.sizeZ)
-            this.uncheckedSetSpot(posX, posY, posZ, material);
-        else
-            FMLLog.warning("Taigore BuildingLibrary: invalid setSpot (%d; %d; %d) for map size (%d; %d; %d)", posX, posY, posZ, this.sizeX, this.sizeY, this.sizeZ);
+        try
+        {
+            if(posX < 0 || posX >= this.sizeX) throw new ArrayIndexOutOfBoundsException(String.format("invalid x"));
+            if(posY < 0 || posY >= this.sizeY) throw new ArrayIndexOutOfBoundsException(String.format("invalid y"));
+            if(posZ < 0 || posZ >= this.sizeZ) throw new ArrayIndexOutOfBoundsException(String.format("invalid z"));
+            
+            if((this.lastBlock != null && !this.lastBlock.equals(material)) || (this.lastBlock == null && material != null))
+            {
+                this.lastBlock = material;
+                this.lastID = this.getIDFromBlock(material);
+                
+                if(this.lastID < 0)
+                    this.lastID = this.addBlockID(material);
+            }
+             
+            int realIndex = ((posX * this.sizeY) + posY) * this.sizeZ + posZ;
+            this.blockMap[realIndex] = (byte)(this.lastID & Byte.MAX_VALUE);
+        }
+        catch(Exception e)
+        {
+            String error = String.format("Taigore Building Library: invalid set spot %d, %d, %d on map size %d, %d, %d", posX, posY, posZ, this.sizeX, this.sizeY, this.sizeZ);
+            throw (Exception)new Exception(error).initCause(e);
+        }
         
         return this;
     }
@@ -97,8 +145,11 @@ public class Block3DMap
      * Sets a spot in the block map.
      * Uses setSpot(int, int, int, IAbstractBlock), but allows
      * to pass a position as argument.
+     * @throws Exception Containing the real cause
+     * @throws ArrayIndexOutOfBoundsException If the point is outside the map volume.
+     * @throws RuntimeException When the map has more than Byte.MAX_VALUE block types.
      */
-    public Block3DMap setSpot(Vec3Int toSet, IBlock material)
+    public Block3DMap setSpot(Vec3Int toSet, IBlock material) throws Exception
     {
         if(toSet != null)
             this.setSpot(toSet.x, toSet.y, toSet.z, material);
@@ -108,26 +159,24 @@ public class Block3DMap
     
     /**
      * Gets the block at the given coordinates.
-     * Does not perform checks on the position and the size of the map.
+     * @throws ArrayIndexOutOfBoundsException If the point is outside the map volume.
      */
-    private IBlock uncheckedGetSpot(int posX, int posY, int posZ)
+    public IBlock getSpot(int posX, int posY, int posZ) throws ArrayIndexOutOfBoundsException
     {
-        int realIndex = ((posX * this.sizeY) + posY) * this.sizeZ + posZ;
-        return this.blockIds.get(this.blockMap[realIndex]); 
-    }
-    /**
-     * Gets the block at the given coordinates.
-     * Returns null and gives a warning if the coordinates are outside
-     * the map.
-     */
-    public IBlock getSpot(int posX, int posY, int posZ)
-    {
-        if(posX >= 0 && posX < this.sizeX && posY >= 0 && posY < this.sizeY && posZ >= 0 && posZ < this.sizeZ)
-            return this.uncheckedGetSpot(posX, posY, posZ);
-        else
+        try
         {
-        	FMLLog.warning("Taigore BuildingLibrary: invalid getSpot (%d; %d; %d) for map size (%d; %d; %d)", posX, posY, posZ, this.sizeX, this.sizeY, this.sizeZ);
-        	return null;
+            if(posX < 0 || posX >= this.sizeX) throw new ArrayIndexOutOfBoundsException(String.format("invalid x %d", posX));
+            if(posY < 0 || posY >= this.sizeY) throw new ArrayIndexOutOfBoundsException(String.format("invalid y %d", posY));
+            if(posZ < 0 || posZ >= this.sizeZ) throw new ArrayIndexOutOfBoundsException(String.format("invalid z %d", posZ));
+            
+            int realIndex = ((posX * this.sizeY) + posY) * this.sizeZ + posZ;
+            return this.getBlockFromID(this.blockMap[realIndex]);
+        }
+        catch(ArrayIndexOutOfBoundsException e)
+        {
+            String error = String.format("Taigore Building Library: invalid get spot %d, %d, %d on map size %d, %d, %d", posX, posY, posZ, this.sizeX, this.sizeY, this.sizeZ);
+
+            throw (ArrayIndexOutOfBoundsException)new ArrayIndexOutOfBoundsException(error).initCause(e);
         }
     }
     /**
@@ -135,7 +184,7 @@ public class Block3DMap
      * Uses getSpot(int, int, int), but allows
      * to pass a position as argument.
      */
-    public Block3DMap getSpot(Vec3Int toGet)
+    public Block3DMap getSpot(Vec3Int toGet) throws ArrayIndexOutOfBoundsException
     {
         if(toGet != null)
             this.getSpot(toGet.x, toGet.y, toGet.z);
@@ -156,41 +205,77 @@ public class Block3DMap
     {
         if(startPoint != null && endPoint != null)
         {
-            int[] maxIndex = {this.sizeX - 1, this.sizeY - 1, this.sizeZ - 1};
-            
             //Corrects the positions provided
             startPoint = new Vec3Int(startPoint);
             endPoint = new Vec3Int(endPoint);
-            boolean intersects = true;
             
-            for(int i = 0; intersects && i < 3; ++i)
+            for(int i = 0; i < 3; ++i)
             {
                 int startPointCoord = startPoint.get(i);
                 int endPointCoord = endPoint.get(i);
                 
-                if((startPointCoord < 0 && endPointCoord < 0) || (startPointCoord > maxIndex[i] && endPointCoord > maxIndex[i]))
-                    intersects = false;
-                else
+                if(startPointCoord > endPointCoord)
                 {
-                    if(startPointCoord > endPointCoord)
-                    {
-                        int temp = startPointCoord;
-                        startPointCoord = endPointCoord;
-                        endPointCoord = temp;
-                    }
-                    
-                    startPoint.set(i, Math.max(0, Math.min(startPointCoord, maxIndex[i])));
-                    endPoint.set(i, Math.max(0, Math.min(endPointCoord, maxIndex[i])));
+                    int temp = startPointCoord;
+                    startPointCoord = endPointCoord;
+                    endPointCoord = temp;
                 }
+                    
+                startPoint.set(i, startPointCoord);
+                endPoint.set(i, endPointCoord);
             }
             
-            if(intersects)
-            {
-                for(int i = 0; i < this.sizeX; ++i)
-                    for(int j = 0; j < this.sizeY; ++j)
-                        for(int k = 0; k < this.sizeZ; ++k)
-                            this.uncheckedSetSpot(i, j, k, toDraw);
-            }
+            //Actually draws the cube
+            for(int i = Math.max(0, startPoint.x); i <= Math.min(this.sizeX - 1, endPoint.x); ++i)
+                for(int j = Math.max(0, startPoint.y); j <= Math.min(this.sizeY - 1, endPoint.y); ++j)
+                    for(int k = Math.max(0, startPoint.z); k <= Math.min(this.sizeZ - 1, endPoint.z); ++k)
+                    {
+                        try
+                        {
+                            this.setSpot(i, j, k, toDraw);
+                        }
+                        catch(Exception e)
+                        {
+                            Throwable cause = e.getCause();
+                            
+                            if(ArrayIndexOutOfBoundsException.class.isInstance(cause))
+                            {
+                                //Checks if any of the coordinates have been incremented, and if so,
+                                //identifies the coordinate responsible for the failure and tries to
+                                //remedy. Otherwise gives up and reports an error
+                                if(k > Math.max(0, startPoint.z))
+                                    endPoint.z = k - 1;
+                                else if(j > Math.max(0, startPoint.y))
+                                    endPoint.y = j - 1;
+                                else if(i > Math.max(0, startPoint.x))
+                                    endPoint.x = i - 1;
+                                else
+                                {
+                                    FMLLog.info("Taigore Building Library: unable to draw cube %s - %s", String.valueOf(startPoint), String.valueOf(endPoint));
+                                    FMLLog.warning(e.getMessage());
+                                    if(e.getCause() != null)
+                                        FMLLog.warning(e.getCause().getMessage());
+                                    
+                                    return this;
+                                }
+                            }
+                            else if(RuntimeException.class.isInstance(cause))
+                            {
+                                //Simply gives up, there is nothing to do
+                                FMLLog.warning("Taigore Building Library: unable to draw cube with material %s", String.valueOf(toDraw));
+                                FMLLog.warning(e.getMessage());
+                                if(e.getCause() != null)
+                                    FMLLog.warning(e.getCause().getMessage());
+                                    
+                                return this;
+                            }
+                            else
+                            {
+                                FMLLog.info("Taigore Building Library: Unexpected exception %s", e != null ? e.getClass() : "null");
+                                e.printStackTrace();
+                            }
+                        }
+                    }
         }
         
         return this;
@@ -205,47 +290,74 @@ public class Block3DMap
     {
         if(startPosition != null && endPosition != null)
         {
-            int[] maxIndex = {this.sizeX - 1, this.sizeY - 1, this.sizeZ - 1};
-            
             //Corrects the positions provided
             startPosition = new Vec3Int(startPosition);
             endPosition = new Vec3Int(endPosition);
-            boolean intersects = true;
             
-            for(int i = 0; intersects && i < 3; ++i)
+            for(int i = 0; i < 3; ++i)
             {
                 int startPointCoord = startPosition.get(i);
                 int endPointCoord = endPosition.get(i);
                 
-                if((startPointCoord < 0 && endPointCoord < 0) || (startPointCoord > maxIndex[i] && endPointCoord > maxIndex[i]))
-                    intersects = false;
-                else
+                if(startPointCoord > endPointCoord)
                 {
-                    
-                    startPosition.set(i, Math.max(0, Math.min(startPointCoord, maxIndex[i])));
-                    endPosition.set(i, Math.max(0, Math.min(endPointCoord, maxIndex[i])));
+                    int temp = startPointCoord;
+                    startPointCoord = endPointCoord;
+                    endPointCoord = temp;
                 }
+                
+                startPosition.set(i, startPointCoord);
+                endPosition.set(i, endPointCoord);
             }
             
-            if(intersects)
+            Vec3Int delta = new Vec3Int(endPosition).addCoordinates(new Vec3Int(-startPosition.x, -startPosition.y, -startPosition.z));
+            int greatestCoord = Math.max(delta.x, Math.max(delta.y, delta.z));
+            
+            if(greatestCoord > 0)
             {
-                double[] delta = {endPosition.x - startPosition.x, endPosition.y - startPosition.y, endPosition.z - startPosition.z};
-                double greatestDimension = 0.0d;
+                Vec3 direction = Vec3.createVectorHelper((double)delta.x / greatestCoord, (double)delta.y / greatestCoord, (double)delta.z / greatestCoord);
+                Vec3Int pointer = new Vec3Int();
+                int i = 0;
                 
-                for(int i = 0; i < 3; ++i) greatestDimension = Math.max(Math.abs(delta[i]), greatestDimension);
-                
-                if(greatestDimension > 0)
+                for(int j = 0; j < 3; ++j)
                 {
-                    for(int i = 0; i < 3; ++i)
-                        delta[i] /= greatestDimension;
+                    int coord = startPosition.get(j);
+                    double dirCoord = j == 0 ? direction.xCoord : (j == 1 ? direction.yCoord : direction.zCoord);
                     
-                    for(int i = 0; i <= greatestDimension; ++i)
+                    if(coord < 0)
+                        i = Math.max(i, (int)Math.ceil(((double)-coord) / dirCoord));
+                }
+                
+                for(; i <= greatestCoord; ++i)
+                {
+                    pointer.reset(startPosition);
+                    pointer.x += direction.xCoord * i;
+                    pointer.y += direction.yCoord * i;
+                    pointer.z += direction.zCoord * i;
+                    
+                    try
                     {
-                        int blockX = (int) Math.floor(delta[0] * i) + startPosition.x;
-                        int blockY = (int) Math.floor(delta[1] * i) + startPosition.y;
-                        int blockZ = (int) Math.floor(delta[2] * i) + startPosition.z;
-                        
-                        this.setSpot(blockX, blockY, blockZ, material);
+                        this.setSpot(pointer.x, pointer.y, pointer.z, material);
+                    }
+                    catch(Exception e)
+                    {
+                        //Reports the line drawing failure and the cause and subcauses of it
+                        if(e != null)
+                        {
+                            String errorReport;
+                            
+                            if(i == 0)
+                                errorReport = String.format("No cycle completed for line %s - %s", String.valueOf(startPosition), String.valueOf(endPosition));
+                            else
+                                errorReport = String.format("Completed %d cycles on line %s - %s. Drawn from %s to %s", i, String.valueOf(startPosition), String.valueOf(endPosition), String.valueOf(startPosition), String.valueOf(pointer));
+                            
+                            FMLLog.warning("Taigore Building Library: exception drawing line.");
+                            FMLLog.warning(errorReport);
+                            FMLLog.warning(e.getMessage());
+                            
+                            for(Throwable cause = e.getCause(); cause != null; cause = cause.getCause())
+                                FMLLog.warning(cause.getMessage());
+                        }
                     }
                 }
             }
@@ -254,24 +366,51 @@ public class Block3DMap
         return this;
     }
     
-    /**
-     * Returns an array of blocks.
-     * The blocks are ordered this way:
-     * (X: 0; Y: 0; Z: 0), (X: 0; Y: 0; Z: 1)... (X: 0; Y: 1; Z: 0), (X: 0; Y: 1; Z: 1)... (X: 1; Y: 0; Z: 0)...
-     */
-    public IBlock[] getAsBlockArray()
+    @Override
+    public Block3DMap clone()
+	{
+	    try
+	    {
+    	    Block3DMap returnValue = (Block3DMap)super.clone();
+    	    
+    	    returnValue.blockIndex = new LinkedHashSet(this.blockIndex);
+    	    returnValue.blockIndexArrayFormCache = null;
+    	    returnValue.blockIndexListFormCache = null;
+    	    returnValue.blockMap = this.blockMap.clone();
+    	    
+    	    return returnValue;
+	    }
+	    catch (CloneNotSupportedException e)
+        {
+	        FMLLog.info("Clone failed");
+            e.printStackTrace();
+            
+            return null;
+        }
+	}
+    
+    @Override
+    public boolean equals(Object toCompare)
     {
-        IBlock[] serializedVolume = new IBlock[this.blockMap.length];
+        if(toCompare == null) return false;
+        if(this == toCompare) return true;
         
-        for(int i = 0, blockIndex = 0; i < this.sizeX; ++i)
-            for(int j = 0; j < this.sizeY; ++j)
-                for(int k = 0; k < this.sizeZ; ++k, ++blockIndex)
-                    serializedVolume[blockIndex] = this.uncheckedGetSpot(i, j, k);
+        if(this.getClass().isInstance(toCompare))
+        {
+            Block3DMap mapToCompare = (Block3DMap)toCompare;
+            
+            if(this.sizeX == mapToCompare.sizeX
+            && this.sizeY == mapToCompare.sizeY
+            && this.sizeZ == mapToCompare.sizeZ)
+            {
+                for(int i = 0; i < this.blockMap.length; ++i)
+                    if(this.blockMap[i] != mapToCompare.blockMap[i])
+                        return false;
+                
+                return this.blockIndex.equals(mapToCompare.blockIndex);
+            }
+        }
         
-        return serializedVolume;
+        return false;
     }
-    /**
-     * Returns the dimensions of this block map.
-     */
-    public int[] getDimensions() { return new int[]{this.sizeX, this.sizeY, this.sizeZ}; }
 }

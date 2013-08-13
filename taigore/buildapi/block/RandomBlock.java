@@ -7,29 +7,34 @@ import java.util.Random;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import taigore.buildapi.Rotation;
-import taigore.buildapi.Vec3Int;
+import taigore.buildapi.utils.ParamSet;
 import taigore.buildapi.utils.RandomSelector;
+import taigore.buildapi.utils.Rotation;
+import taigore.buildapi.utils.Vec3Int;
 
-public class RandomBlock extends RandomSelector implements IBlock
+public class RandomBlock extends RandomSelector<IBlock> implements IBlock
 {
+    //The previous results of peekNextBlock, to allow the method to return the same
+    //value, until getNextBlock is called or the object is modified.
     private Map<ParamSet, BlockInfo> savedPeeks = new HashMap();
     
-    public RandomBlock() {};
-    public RandomBlock(RandomBlock toCopy)
-    {
-        this.probabilityMap.putAll(toCopy.probabilityMap);
-        this.totalProbability = toCopy.totalProbability;
-        this.savedPeeks.putAll(toCopy.savedPeeks);
-    }
+    //The base rotation of the block (relevant if FacingBlocks can be selected in any number of steps)
+    private Rotation facing = Rotation.NO_ROTATION;
     
-	public RandomBlock addBlocks(IBlock...toAdd)
-	{
-	    for(IBlock block : toAdd)
-	        this.addBlock(block, 1);
-	    
-	    return this;
-	};
+    public RandomBlock() {};
+    
+    public RandomBlock addBlocks(IBlock...toAdd)
+    {
+        Map<IBlock, Integer> added = new HashMap();
+        
+        for(IBlock block : toAdd)
+            added.put(block, added.containsKey(block) ? added.get(block) : 1);
+        
+        for(IBlock block : added.keySet())
+            this.addBlock(block, added.get(block));
+        
+        return this;
+    }
 	/**
 	 * Adds a block to the selection this block has.
 	 * If spawn chance is 0 nothing happens.
@@ -41,57 +46,38 @@ public class RandomBlock extends RandomSelector implements IBlock
 	 */
 	public RandomBlock addBlock(IBlock toAdd, int spawnChance)
 	{
-		this.addObject(toAdd.copy(), spawnChance);
+	    this.savedPeeks.clear();
+	    
+		this.addObject(toAdd, spawnChance);
 		
 		return this;
 	}
+	
+	public RandomBlock setRotation(Rotation facing) { this.facing = facing != null ? facing : Rotation.NO_ROTATION; return this; }
+    public RandomBlock addRotation(Rotation facing) { this.facing.add(facing); return this; }
 	
 	///////////
 	// IBlock
 	///////////
     @Override
-    public void placeBlock(World world, Vec3Int position, Rotation facing, Random generator)
-    {
-        BlockInfo toPlace = this.getNextBlock(world, position, facing, generator);
-        
-        if(toPlace != null && toPlace.isValid())
-        {
-            world.setBlock(position.x, position.y, position.z, toPlace.id, toPlace.meta, 2);
-            
-            TileEntity blockTileEntity = world.getBlockTileEntity(position.x, position.y, position.z);
-            NBTTagCompound tileEntityData = toPlace.getTileEntityData();
-            
-            if(tileEntityData != null && blockTileEntity != null)
-                blockTileEntity.readFromNBT(tileEntityData);
-        }
-    }
-    @Override
     public BlockInfo peekNextBlock(World world, Vec3Int position, Rotation facing, Random generator)
     {
         BlockInfo returnValue = null;
         
-        if(world != null && position != null)
+        facing = this.facing.add(facing);
+        
+        ParamSet paramSet = new ParamSet(world, position, facing, generator);
+        
+        if(this.savedPeeks.containsKey(paramSet))
+            returnValue = this.savedPeeks.get(paramSet);
+        else
         {
-            if(facing == null)
-                facing = Rotation.NO_ROTATION;
+            IBlock selected = this.select(generator);
             
-            ParamSet paramSet = new ParamSet();
-            paramSet.world = world;
-            paramSet.position = position;
-            paramSet.facing = facing;
-            paramSet.generator = generator;
+            if(selected != null)
+                returnValue = selected.peekNextBlock(world, position, facing, generator);
             
-            if(this.savedPeeks.containsKey(paramSet))
-                returnValue = this.savedPeeks.get(paramSet);
-            else
-            {
-                IBlock selected = (IBlock) this.select(generator);
-                
-                if(selected != null)
-                    returnValue = selected.peekNextBlock(world, position, facing, generator);
-                
-                this.savedPeeks.put(paramSet, returnValue);
-            }
+            this.savedPeeks.put(paramSet, returnValue);
         }
         
         return returnValue;
@@ -101,58 +87,71 @@ public class RandomBlock extends RandomSelector implements IBlock
     {
         BlockInfo returnValue = null;
         
-        if(world != null && position != null)
+        facing = this.facing.add(facing);
+        
+        ParamSet paramSet = new ParamSet(world, position, facing, generator);
+        
+        if(this.savedPeeks.containsKey(paramSet))
+            returnValue = this.savedPeeks.remove(paramSet);
+        else
         {
-            if(facing == null)
-                facing = Rotation.NO_ROTATION;
+            IBlock selected = this.select(generator);
             
-            ParamSet paramSet = new ParamSet();
-            paramSet.world = world;
-            paramSet.position = position;
-            paramSet.facing = facing;
-            paramSet.generator = generator;
-            
-            if(this.savedPeeks.containsKey(paramSet))
-                returnValue = this.savedPeeks.remove(paramSet);
-            else
-            {
-                IBlock selected = (IBlock) this.select(generator);
-                
-                if(selected != null)
-                    returnValue = selected.getNextBlock(world, position, facing, generator);
-            }
+            if(selected != null)
+                returnValue = selected.getNextBlock(world, position, facing, generator);
         }
         
+        this.savedPeeks.clear();
         return returnValue;
     }
     @Override
-    public IBlock copy() { return new RandomBlock(this); }
-	
-	//TODO Equals and hashCode
-    
-    static private class ParamSet
+    public void placeBlock(World world, Vec3Int position, Rotation facing, Random generator)  throws IllegalArgumentException
     {
-        public World world;
-        public Vec3Int position;
-        public Rotation facing;
-        public Random generator;
-        
-        @Override
-        public boolean equals(Object toCompare)
+        if(world != null && position != null)
         {
-            if(this == toCompare) return true;
+            BlockInfo toPlace = this.getNextBlock(world, position, facing, generator);
             
-            if(this.getClass().isInstance(toCompare))
+            if(toPlace != null && toPlace.isValid())
             {
-                ParamSet paramsToCompare = (ParamSet)toCompare;
+                world.setBlock(position.x, position.y, position.z, toPlace.id, toPlace.meta, 2);
                 
-                return this.world.equals(paramsToCompare.world)
-                    && this.position.equals(paramsToCompare)
-                    && this.facing.equals(facing)
-                    && this.generator.equals(generator);
+                TileEntity blockTileEntity = world.getBlockTileEntity(position.x, position.y, position.z);
+                NBTTagCompound tileEntityData = toPlace.getTileEntityData();
+                
+                if(tileEntityData != null && blockTileEntity != null)
+                    blockTileEntity.readFromNBT(tileEntityData);
             }
-            
-            return false;
         }
     }
+    
+    ///////////
+    // Object
+    ///////////
+    @Override
+    public RandomBlock clone()
+	{
+        RandomBlock returnValue = (RandomBlock)super.clone();
+        
+        returnValue.savedPeeks = new HashMap(this.savedPeeks);
+        
+        return returnValue;
+	}
+	
+	@Override
+	public boolean equals(Object toCompare)
+	{
+	    if(toCompare == null) return false;
+	    if(this == toCompare) return true;
+	    
+	    if(this.getClass().isInstance(toCompare))
+	    {
+	        RandomBlock blockToCompare = (RandomBlock) toCompare;
+	        
+	        return super.equals(blockToCompare)
+	            && this.facing == blockToCompare.facing
+	            && this.savedPeeks.entrySet().equals(blockToCompare.savedPeeks);
+	    }
+	    
+	    return false;
+	}
 }

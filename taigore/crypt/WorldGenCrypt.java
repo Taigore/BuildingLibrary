@@ -2,16 +2,94 @@ package taigore.crypt;
 
 import java.util.Random;
 
+import net.minecraft.block.Block;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import taigore.buildapi.Vec3Int;
-import taigore.buildapi.activestructure.ActiveStructure;
-import taigore.buildapi.building.StaticBuilding;
+import taigore.buildapi.block.RandomBlock;
+import taigore.buildapi.block.StairsBlock;
+import taigore.buildapi.block.StairsBlock.StairsType;
+import taigore.buildapi.block.StaticBlock;
+import taigore.buildapi.building.Block3DMap;
+import taigore.buildapi.building.Structure;
+import taigore.buildapi.complex.Complex;
+import taigore.buildapi.utils.Rotation;
+import taigore.buildapi.utils.Vec3Int;
 import cpw.mods.fml.common.IWorldGenerator;
 
 public class WorldGenCrypt implements IWorldGenerator
 {
-	private static StaticBuilding cryptComplex;
+	private static Complex cryptComplex;
+	
+	{
+	    Vec3Int pointA = new Vec3Int();
+	    Vec3Int pointB = new Vec3Int();
+	    
+	    StaticBlock air = new StaticBlock(0, 0);
+	    StaticBlock ironBars = new StaticBlock(Block.fenceIron);
+	    
+	    StairsBlock[] stoneStairs = new StairsBlock[Rotation.values().length];
+        {
+            for(Rotation facing : Rotation.values())
+                stoneStairs[facing.getIndex()] = new StairsBlock(StairsType.STONEBRICK, facing, false);
+        }
+	    
+	    RandomBlock wallBlock;
+	    {
+    	    StaticBlock stoneBrick = new StaticBlock(Block.stoneBrick, 0);
+    	    StaticBlock stoneBrickCrack = new StaticBlock(Block.stoneBrick, 1);
+    	    StaticBlock stoneBrickMoss = new StaticBlock(Block.stoneBrick, 2);
+    	    StaticBlock stoneBrickSilverfish = new StaticBlock(Block.silverfish, 2);
+    	    
+    	    wallBlock = new RandomBlock();
+    	    
+    	    wallBlock.addBlocks(stoneBrickCrack, stoneBrickMoss);
+    	    wallBlock.addBlock(stoneBrick, 5);
+    	    wallBlock.addBlock(stoneBrickSilverfish, 3);
+	    }
+	    
+	    Structure cryptEntrance;
+	    {
+	        Block3DMap structureMap = new Block3DMap(6, 8, 10, wallBlock);
+	        
+	        pointA.reset(2, 1, 0);
+	        pointB.reset(1, 1, 0).addCoordinates(pointA);
+	        structureMap.drawCube(pointA, pointB, ironBars);
+	        
+	        pointA.reset(1, 1, 1);
+	        pointB.reset(3, 2, 7).addCoordinates(pointA);
+	        structureMap.drawCube(pointA, pointB, air);
+	        
+	        pointA.reset(0, 7, 0);
+	        pointB.reset(1, -1, 9).addCoordinates(pointA);
+	        structureMap.drawCube(pointA, pointB, null);
+	        
+	        pointA.reset(5, 7, 0);
+            pointB.reset(-1, -1, 9).addCoordinates(pointA);
+            structureMap.drawCube(pointA, pointB, null);
+            
+            for(int i = 0; i < 3; ++i)
+            {
+                pointA.reset(i, 5 + i, 0);
+                pointB.reset(0, 0, 9).addCoordinates(pointA);
+                structureMap.drawLine(pointA, pointB, stoneStairs[Rotation.CLOCKWISE.getIndex()]);
+                
+                pointA.reset(5 - i, 5 + i, 0);
+                pointB.reset(0, 0, 9).addCoordinates(pointA);
+                structureMap.drawLine(pointA, pointB, stoneStairs[Rotation.COUNTERCLOCKWISE.getIndex()]);
+            }
+            
+            cryptEntrance = new Structure(structureMap);
+	    }
+	    
+	    cryptComplex = new Complex();
+	    Vec3Int position = new Vec3Int();
+	    
+	    for(int i = 0; i < Rotation.values().length; ++i)
+	    {
+	        position.reset(30, 0, 0).rotate(Rotation.getFromIndex(i));
+	        cryptComplex.addBuilding(cryptEntrance.setRotation(Rotation.getFromIndex(i)).clone(), position.x, position.y, position.z);
+	    }
+	}
 	/*
 	static
 	{
@@ -426,10 +504,9 @@ public class WorldGenCrypt implements IWorldGenerator
 	{
 		if(chunkX == 5 && chunkZ == 5)
 		{
-			Vec3Int drawPosition = new Vec3Int(chunkX * 16, 0, chunkZ * 16);
-			Vec3Int endPosition = new Vec3Int(chunkX * 16 + 160, 50, chunkZ * 16 + 160);
+			Vec3Int drawPosition = new Vec3Int(chunkX * 16, 30, chunkZ * 16);
 			
-			ActiveStructure.fromPositions(drawPosition, endPosition).setPreventSpawn(true);
+			cryptComplex.placeNextComplex(world, drawPosition, Rotation.NO_ROTATION, random);
 			
 			//cryptComplex.drawOnTheWorld(drawPosition, Rotation.NO_ROTATION, random, world);
 		}
